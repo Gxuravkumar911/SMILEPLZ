@@ -1,0 +1,115 @@
+/* global cv */
+import React, { useRef, useEffect } from "react";
+
+const SmileDetector = ({ onSmileDetected }) => {
+  const videoRef = useRef(null);
+
+  useEffect(() => {
+    let stream;
+
+    const loadCascadesAndStartCamera = async () => {
+      try {
+        // Check if OpenCV is loaded
+        if (typeof cv === "undefined") {
+          console.error("OpenCV.js is not loaded");
+          return;
+        }
+        await new Promise((resolve) => {
+          cv.onRuntimeInitialized = resolve;
+        });
+
+        // Load Haar cascades
+        const faceCascade = new cv.CascadeClassifier();
+        const smileCascade = new cv.CascadeClassifier();
+
+        faceCascade.load("/haarcascade_frontalface_default.xml");
+        smileCascade.load("/haarcascade_smile.xml");
+
+        // Access the camera
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const videoElement = videoRef.current;
+        console.log("Video element:", videoElement);
+
+        if (!videoElement) {
+          console.error("Video element not found.");
+          return;
+        }
+
+        videoElement.srcObject = stream;
+
+        // Check if stream is set properly
+        console.log("Video stream set to element");
+
+        // Start video playback
+        videoElement.onloadedmetadata = () => {
+          console.log("Metadata loaded. Playing video...");
+          videoElement.play();
+          videoElement.onplay = () => {
+            console.log("Video is playing.");
+            detectSmiles(faceCascade, smileCascade);
+          };
+        };
+      } catch (error) {
+        console.error("Error loading cascades or accessing camera:", error);
+      }
+    };
+
+    const detectSmiles = (faceCascade, smileCascade) => {
+      const video = videoRef.current;
+      const src = new cv.Mat(video.videoHeight, video.videoWidth, cv.CV_8UC4);
+      const gray = new cv.Mat();
+
+      const processFrame = () => {
+        if (!video) return;
+
+        const cap = new cv.VideoCapture(video);
+        cap.read(src);
+        cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+
+        // Detect faces
+        const faces = new cv.RectVector();
+        faceCascade.detectMultiScale(gray, faces);
+
+        // Detect smiles within each face
+        for (let i = 0; i < faces.size(); i++) {
+          const face = faces.get(i);
+          const roiGray = gray.roi(face);
+          const smiles = new cv.RectVector();
+          smileCascade.detectMultiScale(roiGray, smiles);
+
+          if (smiles.size() > 0) {
+            onSmileDetected();
+          }
+
+          roiGray.delete();
+          smiles.delete();
+        }
+
+        faces.delete();
+
+        requestAnimationFrame(processFrame);
+      };
+
+      processFrame();
+    };
+
+    loadCascadesAndStartCamera();
+
+    // Cleanup
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, [onSmileDetected]);
+
+  return (
+    <video
+      ref={videoRef}
+      style={{ width: "300px", height: "500px" }}
+      muted
+    />
+  );
+};
+
+export default SmileDetector;
