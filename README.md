@@ -49,6 +49,6 @@ cd /frontend  (make sure to download required depebdencies)
 npm start  
 
 
-#Conclusion 🎯:-
+# Conclusion 🎯:-
 SmileplzZ is a testament to my ability to merge machine learning, real-time interactivity, and full-stack development into a single, cohesive web application. This project showcases not just my technical expertise but also my creativity and passion for building engaging, impactful solutions.
 Explore the codebase, provide feedback, or reach out for collaboration ideas—I’m always open to building something extraordinary together! 🚀
