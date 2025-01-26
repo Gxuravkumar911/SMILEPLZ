@@ -1,6 +1,6 @@
 SmileplzZ is an innovative MERN stack web application designed to gamify positivity through real-time smile detection and leaderboards. This project highlights my expertise in full-stack development, machine learning, and real-time interactivity, demonstrating my ability to craft complex, scalable, and engaging applications.
 
-#Key Features ✨:-
+# Key Features ✨:-
 - **Real-Time Smile Detection 🧠**:
 Integrated TensorFlow and FaceAPI to analyze smiles in real-time, combining cutting-edge machine learning with seamless browser-based functionality.
 
@@ -19,7 +19,7 @@ Provides instant leaderboard updates and enhance user interaction.
 - **Scalable Backend 🚀**:
 Designed with Node.js and Express to ensure efficient routing, scalability, and performance.
 
-#Technologies Used 🛠️:-
+# Technologies Used 🛠️:-
 
 **Frontend**:
 - React.js: For building a responsive, interactive user interface.
@@ -36,7 +36,7 @@ Designed with Node.js and Express to ensure efficient routing, scalability, and 
 - TensorFlow.js: For client-side facial recogination.
 - FaceAPI: For detecting and analyzing facial landmarks.
 
-#Installation & Setup 🚀:
+# Installation & Setup 🚀:
 git clone https://github.com/gxuravkumar911/smileplz.git  
 cd smileplzZ
 
