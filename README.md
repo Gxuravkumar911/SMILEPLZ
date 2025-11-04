@@ -36,6 +36,9 @@ Designed with Node.js and Express to ensure efficient routing, scalability, and 
 - TensorFlow.js: For client-side facial recogination.
 - FaceAPI: For detecting and analyzing facial landmarks.
 
+#Can you smile for long enough? Lets test:
+https://smileplz.onrender.com/
+
 # Installation & Setup 🚀:
 git clone https://github.com/gxuravkumar911/smileplz.git  
 cd smileplzZ
