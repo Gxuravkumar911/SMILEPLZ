@@ -44,11 +44,11 @@ git clone https://github.com/gxuravkumar911/smileplz.git
 cd smileplzZ
 
 Backend:
-cd backend   (make sure to download required depebdencies)
+cd backend   (make sure to download required dependencies)
 npm start  
 
 Frontend:
-cd /frontend  (make sure to download required depebdencies)
+cd /frontend  (make sure to download required dependencies)
 npm start  
 
 
