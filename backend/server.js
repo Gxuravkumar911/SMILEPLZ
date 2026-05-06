@@ -5,7 +5,7 @@ const path = require("path");
 const fs = require("fs");
 const dotenv = require("dotenv");
 
-dotenv.config();
+dotenv.config({ path: path.join(__dirname, ".env") });
 
 if (!process.env.MONGO_URI) {
   console.error("Error: MONGO_URI is not defined in the environment variables.");
