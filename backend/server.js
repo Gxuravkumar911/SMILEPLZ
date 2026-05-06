@@ -1,61 +1,78 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const path = require("path");
+const fs = require("fs");
 const dotenv = require("dotenv");
 
-dotenv.config(); // Load environment variables
+dotenv.config();
 
-// Check if MONGO_URI is available in the environment
 if (!process.env.MONGO_URI) {
   console.error("Error: MONGO_URI is not defined in the environment variables.");
-  process.exit(1); // Exit the application if the MONGO_URI is not set
+  process.exit(1);
 }
 
-const app = express(); // Initialize the app
+if (!process.env.JWT_SECRET) {
+  console.error("Error: JWT_SECRET is not defined in the environment variables.");
+  process.exit(1);
+}
 
-// Middleware
-app.use(cors());
-app.use(express.json());
+const app = express();
 
-// Import Routes (after app initialization)
+const corsOriginEnv = process.env.CORS_ORIGINS;
+const corsConfig = corsOriginEnv
+  ? {
+      origin: corsOriginEnv.split(",").map((s) => s.trim()),
+      credentials: true,
+    }
+  : { origin: true, credentials: true };
+app.use(cors(corsConfig));
+
+app.use(express.json({ limit: "100kb" }));
+
 const userRoutes = require("./routes/userRoutes");
-app.use("/api/users", userRoutes); // Define user routes
+app.use("/api/users", userRoutes);
 
-// Database Connection with enhanced error handling
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
+app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
+
+mongoose
+  .connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB connected"))
   .catch((err) => {
-    console.error("MongoDB connection error: ", err.message);
-    process.exit(1); // Exit the application if MongoDB connection fails
+    console.error("MongoDB connection error:", err.message);
+    process.exit(1);
   });
 
-// Test Route
-app.get("/", (req, res) => res.send("SmileToEarn Backend is running"));
+const buildPath = path.join(__dirname, "..", "frontend", "build");
+if (fs.existsSync(buildPath)) {
+  app.use(express.static(buildPath));
+  app.get("*", (req, res, next) => {
+    if (req.path.startsWith("/api")) return next();
+    res.sendFile(path.join(buildPath, "index.html"));
+  });
+  console.log(`Serving frontend build from ${buildPath}`);
+} else {
+  app.get("/", (_req, res) =>
+    res.send("smileplz API is running (frontend build not found — dev mode)")
+  );
+}
 
-// Global Error Handling Middleware
-app.use((err, req, res, next) => {
-  console.error("Global Error: ", err.message); // Log the error message
-  console.error(err.stack); // Log the full stack trace for debugging
-  res.status(500).json({ message: "Internal Server Error", error: err.message });
+app.use((err, _req, res, _next) => {
+  console.error("Global error:", err.message);
+  const isProd = process.env.NODE_ENV === "production";
+  res.status(err.status || 500).json({
+    message: isProd ? "Internal server error" : err.message,
+  });
 });
 
-// Catch uncaught errors
 process.on("uncaughtException", (err) => {
-  console.error("Uncaught Exception: ", err.message);
-  console.error(err.stack);
-  process.exit(1); // Exit the process in case of uncaught exceptions
+  console.error("Uncaught exception:", err);
+  process.exit(1);
 });
-
-// Catch unhandled promise rejections
 process.on("unhandledRejection", (err) => {
-  console.error("Unhandled Rejection: ", err.message);
-  console.error(err.stack);
-  process.exit(1); // Exit the process in case of unhandled promise rejections
+  console.error("Unhandled rejection:", err);
+  process.exit(1);
 });
 
-// Server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

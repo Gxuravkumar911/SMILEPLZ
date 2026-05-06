@@ -1,14 +1,22 @@
 {
-  "name": "smiletoearn",
+  "name": "smileplz",
   "version": "1.0.0",
-  "main": "index.js",
+  "description": "smileplz — smile-detection game with global leaderboard",
+  "main": "backend/server.js",
   "scripts": {
+    "start": "node backend/server.js",
+    "build": "cd frontend && npm install && npm run build",
+    "postinstall": "echo 'Run npm run build to also build the frontend.'",
+    "dev:backend": "nodemon backend/server.js",
+    "dev:frontend": "cd frontend && npm start",
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "engines": {
+    "node": ">=18"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
   "dependencies": {
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",

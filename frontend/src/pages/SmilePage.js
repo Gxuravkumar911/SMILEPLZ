@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import {
   Box,
   Typography,
@@ -13,12 +13,16 @@ import StopCircleIcon from "@mui/icons-material/StopCircle";
 import LocalFireDepartmentIcon from "@mui/icons-material/LocalFireDepartment";
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
 import TimerIcon from "@mui/icons-material/Timer";
+import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import { useNavigate } from "react-router-dom";
 import AppShell from "../components/AppShell";
 import SmileDetector from "../components/SmileDetector";
+import CoachMarks from "../components/CoachMarks";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../components/Toast";
 import { userApi } from "../api/client";
+import { feedbackSmile, feedbackPB, feedbackCombo } from "../utils/feedback";
+import { fireConfetti, fireBurst } from "../utils/confetti";
 
 const formatTime = (s) => {
   const m = Math.floor(s / 60);
@@ -27,6 +31,13 @@ const formatTime = (s) => {
 };
 
 const STREAK_WINDOW_MS = 1500;
+
+const multiplierForStreak = (s) => {
+  if (s >= 20) return 4;
+  if (s >= 10) return 3;
+  if (s >= 5) return 2;
+  return 1;
+};
 
 const SmilePage = () => {
   const navigate = useNavigate();
@@ -41,18 +52,30 @@ const SmilePage = () => {
   const [elapsed, setElapsed] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [bursts, setBursts] = useState([]);
+  const [leaderboard, setLeaderboard] = useState([]);
 
   const lastSmileAtRef = useRef(0);
   const startedAtRef = useRef(Date.now());
+  const pbCelebratedRef = useRef(false);
+  const lastMultiplierRef = useRef(1);
 
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        const res = await userApi.getMaxScore(username);
-        if (mounted) setMaxScore(res.data?.maxScore ?? 0);
+        const [maxRes, lbRes] = await Promise.allSettled([
+          userApi.getMaxScore(username),
+          userApi.leaderboard(),
+        ]);
+        if (!mounted) return;
+        if (maxRes.status === "fulfilled") {
+          setMaxScore(maxRes.value.data?.maxScore ?? 0);
+        }
+        if (lbRes.status === "fulfilled") {
+          setLeaderboard(lbRes.value.data || []);
+        }
       } catch {
-        // silent — non-critical
+        // non-critical
       }
     })();
     return () => { mounted = false; };
@@ -75,25 +98,41 @@ const SmilePage = () => {
 
   const handleSmile = useCallback(() => {
     const now = performance.now();
+    const cont = now - lastSmileAtRef.current < STREAK_WINDOW_MS;
+    const newStreak = cont ? streak + 1 : 1;
+    const multiplier = multiplierForStreak(newStreak);
+
     setScore((s) => {
-      const ns = s + 1;
+      const ns = s + multiplier;
       localStorage.setItem("currentScore", String(ns));
+      if (!pbCelebratedRef.current && maxScore > 0 && s <= maxScore && ns > maxScore) {
+        pbCelebratedRef.current = true;
+        feedbackPB();
+        fireConfetti({ count: 130 });
+      } else {
+        feedbackSmile();
+      }
       return ns;
     });
-    setStreak((prev) => {
-      const cont = now - lastSmileAtRef.current < STREAK_WINDOW_MS;
-      const ns = cont ? prev + 1 : 1;
-      setBestStreak((b) => Math.max(b, ns));
-      return ns;
-    });
+
+    setStreak(newStreak);
+    setBestStreak((b) => Math.max(b, newStreak));
+
+    if (multiplier > lastMultiplierRef.current) {
+      feedbackCombo(multiplier);
+      fireBurst({ count: 18, y: window.innerHeight * 0.5 });
+    }
+    lastMultiplierRef.current = multiplier;
+
     lastSmileAtRef.current = now;
     spawnBurst();
-  }, [spawnBurst]);
+  }, [spawnBurst, streak, maxScore]);
 
   const handleStrength = useCallback((v) => {
     setStrength(v);
     if (performance.now() - lastSmileAtRef.current > STREAK_WINDOW_MS) {
       setStreak(0);
+      lastMultiplierRef.current = 1;
     }
   }, []);
 
@@ -118,9 +157,25 @@ const SmilePage = () => {
   const beatsPB = score > maxScore;
   const strengthPct = Math.round(strength * 100);
   const isSmiling = strength >= 0.7;
+  const multiplier = multiplierForStreak(streak);
+
+  const { liveRank, nextTarget, gap } = useMemo(() => {
+    const myEffective = Math.max(score, maxScore);
+    const others = leaderboard.filter((u) => u.username !== username);
+    const ahead = others
+      .filter((u) => u.maxScore > myEffective)
+      .sort((a, b) => a.maxScore - b.maxScore);
+    return {
+      liveRank: ahead.length + 1,
+      nextTarget: ahead[0] || null,
+      gap: ahead[0] ? ahead[0].maxScore - myEffective + 1 : 0,
+    };
+  }, [leaderboard, score, maxScore, username]);
 
   return (
     <AppShell>
+      <CoachMarks storageKey="smileplz.coach.smile.v1" />
+
       <Box sx={{ maxWidth: 1100, mx: "auto" }}>
         <Stack
           direction={{ xs: "column", sm: "row" }}
@@ -137,7 +192,7 @@ const SmilePage = () => {
               Hi <strong>{username}</strong> — every grin's a point. Big ones count harder.
             </Typography>
           </Box>
-          <Stack direction="row" spacing={1}>
+          <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ rowGap: 1 }}>
             <Chip
               icon={<TimerIcon />}
               label={formatTime(elapsed)}
@@ -148,8 +203,45 @@ const SmilePage = () => {
               label={`PB ${maxScore}`}
               sx={{ bgcolor: "background.paper", fontWeight: 700 }}
             />
+            {leaderboard.length > 0 && (
+              <Chip
+                icon={<TrendingUpIcon />}
+                label={liveRank === 1 ? "🥇 #1 — defend it" : `#${liveRank}`}
+                sx={{
+                  bgcolor: liveRank === 1 ? "warning.main" : "background.paper",
+                  color: liveRank === 1 ? "#1A1530" : "text.primary",
+                  fontWeight: 700,
+                }}
+              />
+            )}
           </Stack>
         </Stack>
+
+        {nextTarget && leaderboard.length > 0 && (
+          <Box
+            sx={{
+              mb: 3,
+              p: 1.75,
+              px: 2.25,
+              borderRadius: 999,
+              background: "linear-gradient(90deg, rgba(255,95,143,0.08), rgba(124,92,255,0.08))",
+              border: "1px solid rgba(124,92,255,0.18)",
+              display: "flex",
+              alignItems: "center",
+              gap: 1.5,
+              flexWrap: "wrap",
+            }}
+          >
+            <Box sx={{ fontSize: 22, lineHeight: 1 }}>🎯</Box>
+            <Typography sx={{ fontWeight: 700 }}>
+              {gap} more to overtake{" "}
+              <Box component="span" sx={{ color: "primary.main" }}>{nextTarget.username}</Box>
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ ml: "auto" }}>
+              They're at {nextTarget.maxScore}
+            </Typography>
+          </Box>
+        )}
 
         <Box
           sx={{
@@ -194,6 +286,35 @@ const SmilePage = () => {
                 </Box>
               ))}
             </Box>
+
+            {multiplier > 1 && (
+              <Box
+                key={multiplier}
+                sx={{
+                  position: "absolute",
+                  top: 16,
+                  right: 16,
+                  px: 1.75,
+                  py: 0.75,
+                  borderRadius: 999,
+                  background: "linear-gradient(135deg, #FFB627, #FF5F8F)",
+                  color: "#fff",
+                  fontWeight: 800,
+                  fontSize: 18,
+                  letterSpacing: "-0.02em",
+                  boxShadow: "0 8px 22px rgba(255, 95, 143, 0.45)",
+                  animation: "popIn 320ms cubic-bezier(0.34, 1.56, 0.64, 1)",
+                  pointerEvents: "none",
+                  "@keyframes popIn": {
+                    "0%": { transform: "scale(0.6)", opacity: 0 },
+                    "60%": { transform: "scale(1.15)", opacity: 1 },
+                    "100%": { transform: "scale(1)" },
+                  },
+                }}
+              >
+                ×{multiplier} COMBO 🔥
+              </Box>
+            )}
           </Box>
 
           <Stack spacing={2.5}>
@@ -284,6 +405,8 @@ const SmilePage = () => {
                 bgcolor: "background.paper",
                 border: "1px solid rgba(26, 21, 48, 0.06)",
                 boxShadow: "0 6px 18px rgba(26, 21, 48, 0.06)",
+                position: "relative",
+                overflow: "hidden",
               }}
             >
               <Stack direction="row" alignItems="center" spacing={2}>
@@ -304,9 +427,24 @@ const SmilePage = () => {
                   <LocalFireDepartmentIcon />
                 </Box>
                 <Box sx={{ flexGrow: 1 }}>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, letterSpacing: 1 }}>
-                    STREAK
-                  </Typography>
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, letterSpacing: 1 }}>
+                      STREAK
+                    </Typography>
+                    {multiplier > 1 && (
+                      <Chip
+                        size="small"
+                        label={`×${multiplier}`}
+                        sx={{
+                          height: 18,
+                          fontSize: 11,
+                          fontWeight: 800,
+                          background: "linear-gradient(135deg, #FFB627, #FF5F8F)",
+                          color: "#fff",
+                        }}
+                      />
+                    )}
+                  </Stack>
                   <Typography variant="h4" sx={{ fontWeight: 800, lineHeight: 1 }}>
                     {streak}
                   </Typography>
@@ -318,6 +456,50 @@ const SmilePage = () => {
                   </Box>
                 </Tooltip>
               </Stack>
+
+              <Box sx={{ mt: 2 }}>
+                <Box
+                  sx={{
+                    height: 6,
+                    borderRadius: 999,
+                    bgcolor: "rgba(26, 21, 48, 0.06)",
+                    overflow: "hidden",
+                    position: "relative",
+                  }}
+                >
+                  {[5, 10, 20].map((threshold, i) => {
+                    const prev = [0, 5, 10][i];
+                    const segWidth = ((threshold - prev) / 20) * 100;
+                    const segLeft = (prev / 20) * 100;
+                    const filled = streak >= threshold;
+                    const partial = streak > prev && streak < threshold;
+                    const partialWidth = partial ? ((streak - prev) / (threshold - prev)) * segWidth : 0;
+                    return (
+                      <React.Fragment key={threshold}>
+                        {(filled || partial) && (
+                          <Box
+                            sx={{
+                              position: "absolute",
+                              top: 0,
+                              left: `${segLeft}%`,
+                              height: "100%",
+                              width: `${filled ? segWidth : partialWidth}%`,
+                              background: ["linear-gradient(90deg,#FFCB5C,#FFB627)", "linear-gradient(90deg,#FFB627,#FF8AB0)", "linear-gradient(90deg,#FF8AB0,#7C5CFF)"][i],
+                              transition: "width 220ms ease",
+                            }}
+                          />
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+                </Box>
+                <Stack direction="row" justifyContent="space-between" sx={{ mt: 0.75 }}>
+                  <Typography variant="caption" color="text.secondary">×1</Typography>
+                  <Typography variant="caption" color={streak >= 5 ? "warning.main" : "text.secondary"} sx={{ fontWeight: streak >= 5 ? 700 : 400 }}>×2</Typography>
+                  <Typography variant="caption" color={streak >= 10 ? "warning.main" : "text.secondary"} sx={{ fontWeight: streak >= 10 ? 700 : 400 }}>×3</Typography>
+                  <Typography variant="caption" color={streak >= 20 ? "primary.main" : "text.secondary"} sx={{ fontWeight: streak >= 20 ? 700 : 400 }}>×4</Typography>
+                </Stack>
+              </Box>
             </Box>
 
             <Button

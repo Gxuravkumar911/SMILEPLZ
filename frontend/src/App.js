@@ -8,6 +8,7 @@ import LeaderboardPage from "./pages/LeaderboardPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { AuthProvider } from "./context/AuthContext";
+import { SettingsProvider } from "./context/SettingsContext";
 import { ToastProvider } from "./components/Toast";
 
 function App() {
@@ -15,6 +16,7 @@ function App() {
     <ErrorBoundary>
       <Router>
         <AuthProvider>
+          <SettingsProvider>
           <ToastProvider>
             <Routes>
               <Route path="/" element={<LandingPage />} />
@@ -39,6 +41,7 @@ function App() {
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </ToastProvider>
+          </SettingsProvider>
         </AuthProvider>
       </Router>
     </ErrorBoundary>

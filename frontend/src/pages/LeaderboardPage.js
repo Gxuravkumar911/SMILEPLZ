@@ -18,6 +18,7 @@ import AppShell from "../components/AppShell";
 import { useAuth } from "../context/AuthContext";
 import { userApi } from "../api/client";
 import { useToast } from "../components/Toast";
+import { avatarGradient, initialOf } from "../utils/avatar";
 
 const podiumOrder = [1, 0, 2];
 const podiumColors = [
@@ -25,20 +26,6 @@ const podiumColors = [
   { bg: "linear-gradient(135deg, #E5E7EB, #C0C0C0)", height: 110, label: "2nd" },
   { bg: "linear-gradient(135deg, #FBBF77, #CD7F32)", height: 90, label: "3rd" },
 ];
-
-const initialOf = (name) => (name || "?").charAt(0).toUpperCase();
-const avatarGradient = (name) => {
-  const palette = [
-    "linear-gradient(135deg, #FF8AB0, #FF5F8F)",
-    "linear-gradient(135deg, #A289FF, #7C5CFF)",
-    "linear-gradient(135deg, #FFCB5C, #FFB627)",
-    "linear-gradient(135deg, #4ADE80, #22C55E)",
-    "linear-gradient(135deg, #67E8F9, #06B6D4)",
-  ];
-  let h = 0;
-  for (let i = 0; i < (name || "").length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
-  return palette[h % palette.length];
-};
 
 const LeaderboardPage = () => {
   const navigate = useNavigate();
@@ -213,11 +200,10 @@ const LeaderboardPage = () => {
 
             <Box
               sx={{
-                p: 1,
+                p: 1.25,
                 borderRadius: 5,
                 bgcolor: "background.paper",
                 border: "1px solid rgba(26, 21, 48, 0.06)",
-                overflow: "hidden",
               }}
             >
               {rest.length === 0 ? (
@@ -225,57 +211,97 @@ const LeaderboardPage = () => {
                   <Typography color="text.secondary">That's everyone on the board so far.</Typography>
                 </Box>
               ) : (
-                rest.map((u, i) => {
-                  const place = i + 4;
-                  const isMe = u.username === username;
-                  return (
-                    <Stack
-                      key={u.username}
-                      direction="row"
-                      alignItems="center"
-                      spacing={2}
-                      sx={{
-                        p: 2,
-                        borderRadius: 3,
-                        bgcolor: isMe ? "rgba(255, 95, 143, 0.08)" : "transparent",
-                        border: isMe ? "1px solid rgba(255, 95, 143, 0.2)" : "1px solid transparent",
-                        transition: "background 200ms ease",
-                        "&:hover": { bgcolor: isMe ? "rgba(255, 95, 143, 0.12)" : "rgba(26, 21, 48, 0.04)" },
-                      }}
-                    >
-                      <Box
+                <Stack spacing={0.75}>
+                  {rest.map((u, i) => {
+                    const place = i + 4;
+                    const isMe = u.username === username;
+                    return (
+                      <Stack
+                        key={u.username}
+                        direction="row"
+                        alignItems="center"
+                        spacing={1.75}
                         sx={{
-                          width: 40,
-                          textAlign: "center",
-                          fontFamily: '"Fraunces", Georgia, serif',
-                          fontWeight: 700,
-                          fontSize: 20,
-                          color: "text.secondary",
+                          p: 1.25,
+                          pl: 1.5,
+                          borderRadius: 3,
+                          bgcolor: isMe ? "rgba(255, 95, 143, 0.08)" : "rgba(26, 21, 48, 0.025)",
+                          border: isMe
+                            ? "1px solid rgba(255, 95, 143, 0.22)"
+                            : "1px solid transparent",
+                          transition: "all 180ms ease",
+                          "&:hover": {
+                            bgcolor: isMe ? "rgba(255, 95, 143, 0.12)" : "rgba(26, 21, 48, 0.05)",
+                            transform: "translateX(2px)",
+                          },
                         }}
                       >
-                        {place}
-                      </Box>
-                      <Avatar sx={{ background: avatarGradient(u.username), color: "#fff", fontWeight: 700 }}>
-                        {initialOf(u.username)}
-                      </Avatar>
-                      <Box sx={{ flexGrow: 1 }}>
-                        <Typography sx={{ fontWeight: 700 }}>
-                          {u.username}{isMe && (
-                            <Chip
-                              size="small"
-                              label="you"
-                              sx={{ ml: 1, bgcolor: "primary.main", color: "#fff", height: 20, fontWeight: 700, fontSize: 10 }}
-                            />
-                          )}
-                        </Typography>
-                      </Box>
-                      <Box sx={{ textAlign: "right" }}>
-                        <Typography sx={{ fontWeight: 800, fontSize: 18 }}>{u.maxScore}</Typography>
-                        <Typography variant="caption" color="text.secondary">smiles</Typography>
-                      </Box>
-                    </Stack>
-                  );
-                })
+                        <Box
+                          sx={{
+                            minWidth: 38,
+                            textAlign: "center",
+                            fontFamily: '"Fraunces", Georgia, serif',
+                            fontWeight: 700,
+                            fontSize: 20,
+                            color: "text.secondary",
+                            letterSpacing: "-0.02em",
+                          }}
+                        >
+                          {place}
+                        </Box>
+                        <Avatar
+                          sx={{
+                            width: 36,
+                            height: 36,
+                            background: avatarGradient(u.username),
+                            color: "#fff",
+                            fontWeight: 700,
+                            fontSize: 14,
+                          }}
+                        >
+                          {initialOf(u.username)}
+                        </Avatar>
+                        <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                          <Typography
+                            sx={{
+                              fontWeight: 700,
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {u.username}
+                            {isMe && (
+                              <Chip
+                                size="small"
+                                label="you"
+                                sx={{
+                                  ml: 1,
+                                  bgcolor: "primary.main",
+                                  color: "#fff",
+                                  height: 20,
+                                  fontWeight: 700,
+                                  fontSize: 10,
+                                }}
+                              />
+                            )}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            #{place}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ textAlign: "right" }}>
+                          <Typography sx={{ fontWeight: 800, fontSize: 18, lineHeight: 1.1 }}>
+                            {u.maxScore}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            smiles
+                          </Typography>
+                        </Box>
+                      </Stack>
+                    );
+                  })}
+                </Stack>
               )}
             </Box>
 

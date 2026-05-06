@@ -22,6 +22,7 @@ import AppShell from "../components/AppShell";
 import { useAuth } from "../context/AuthContext";
 import { userApi } from "../api/client";
 import { useToast } from "../components/Toast";
+import { avatarGradient, initialOf } from "../utils/avatar";
 
 const Stat = ({ label, value, gradient, icon, footer }) => (
   <Box
@@ -373,45 +374,245 @@ const DashboardPage = () => {
         {topThree.length > 0 && (
           <Box
             sx={{
-              p: 3,
+              p: { xs: 2.5, md: 3 },
               borderRadius: 5,
               bgcolor: "background.paper",
               border: "1px solid rgba(26, 21, 48, 0.06)",
             }}
           >
-            <Typography variant="h6" sx={{ mb: 2 }}>Top of the leaderboard</Typography>
-            <Stack spacing={1.25}>
-              {topThree.map((u, i) => (
-                <Stack
-                  key={u.username}
-                  direction="row"
-                  alignItems="center"
-                  spacing={2}
+            <Stack
+              direction="row"
+              alignItems="center"
+              justifyContent="space-between"
+              sx={{ mb: 2.5 }}
+            >
+              <Stack direction="row" alignItems="center" spacing={1.25}>
+                <EmojiEventsIcon sx={{ color: "warning.main" }} />
+                <Typography variant="h6">Top of the leaderboard</Typography>
+              </Stack>
+              <Button
+                size="small"
+                onClick={() => navigate("/leaderboard")}
+                sx={{ color: "primary.main", fontWeight: 700 }}
+              >
+                View all →
+              </Button>
+            </Stack>
+
+            {(() => {
+              const u = topThree[0];
+              const isMe = u.username === username;
+              return (
+                <Box
                   sx={{
-                    p: 1.5,
-                    borderRadius: 3,
-                    bgcolor: u.username === username ? "rgba(255, 95, 143, 0.08)" : "transparent",
+                    position: "relative",
+                    p: { xs: 2, md: 2.5 },
+                    borderRadius: 4,
+                    mb: 1.25,
+                    background: isMe
+                      ? "linear-gradient(135deg, #FF5F8F 0%, #7C5CFF 100%)"
+                      : "linear-gradient(135deg, #FFE9A8 0%, #FFD27A 50%, #F2A65A 100%)",
+                    color: isMe ? "#fff" : "#3D2A0E",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: { xs: 1.5, md: 2 },
+                    overflow: "hidden",
+                    boxShadow: isMe
+                      ? "0 16px 32px rgba(255, 95, 143, 0.32)"
+                      : "0 12px 28px rgba(242, 166, 90, 0.30)",
                   }}
                 >
-                  <Avatar
+                  <Box
                     sx={{
-                      width: 40,
-                      height: 40,
-                      bgcolor: ["#FFD700", "#C0C0C0", "#CD7F32"][i],
-                      color: "#1A1530",
-                      fontWeight: 800,
+                      position: "absolute",
+                      top: -16,
+                      right: -16,
+                      fontSize: 120,
+                      opacity: 0.16,
+                      pointerEvents: "none",
+                      transform: "rotate(8deg)",
                     }}
                   >
-                    {i + 1}
-                  </Avatar>
-                  <Box sx={{ flexGrow: 1 }}>
-                    <Typography sx={{ fontWeight: 700 }}>
-                      {u.username}{u.username === username && " (you)"}
+                    👑
+                  </Box>
+
+                  <Box sx={{ position: "relative", flexShrink: 0 }}>
+                    <Avatar
+                      sx={{
+                        width: { xs: 52, md: 60 },
+                        height: { xs: 52, md: 60 },
+                        background: avatarGradient(u.username),
+                        color: "#fff",
+                        fontWeight: 800,
+                        fontSize: { xs: 22, md: 26 },
+                        border: "3px solid rgba(255,255,255,0.55)",
+                      }}
+                    >
+                      {initialOf(u.username)}
+                    </Avatar>
+                    <Box
+                      sx={{
+                        position: "absolute",
+                        top: -14,
+                        left: -10,
+                        fontSize: 26,
+                        transform: "rotate(-22deg)",
+                        filter: "drop-shadow(0 4px 8px rgba(0,0,0,0.25))",
+                      }}
+                    >
+                      👑
+                    </Box>
+                  </Box>
+
+                  <Box sx={{ flexGrow: 1, minWidth: 0, position: "relative" }}>
+                    <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mb: 0.5 }}>
+                      <Chip
+                        size="small"
+                        label="#1 Champion"
+                        sx={{
+                          bgcolor: isMe ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.16)",
+                          color: "inherit",
+                          fontWeight: 700,
+                          height: 22,
+                          fontSize: 11,
+                          letterSpacing: 0.3,
+                        }}
+                      />
+                      {isMe && (
+                        <Chip
+                          size="small"
+                          label="that's you"
+                          sx={{
+                            bgcolor: "rgba(255,255,255,0.4)",
+                            color: "inherit",
+                            fontWeight: 700,
+                            height: 22,
+                            fontSize: 11,
+                          }}
+                        />
+                      )}
+                    </Stack>
+                    <Typography
+                      sx={{
+                        fontFamily: '"Fraunces", Georgia, serif',
+                        fontWeight: 800,
+                        fontSize: { xs: 22, md: 26 },
+                        lineHeight: 1.1,
+                        letterSpacing: "-0.02em",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {u.username}
                     </Typography>
                   </Box>
-                  <Typography sx={{ fontWeight: 700 }}>{u.maxScore}</Typography>
-                </Stack>
-              ))}
+
+                  <Box sx={{ textAlign: "right", flexShrink: 0, position: "relative" }}>
+                    <Typography
+                      sx={{
+                        fontFamily: '"Fraunces", Georgia, serif',
+                        fontWeight: 800,
+                        fontSize: { xs: 32, md: 40 },
+                        lineHeight: 1,
+                        letterSpacing: "-0.03em",
+                      }}
+                    >
+                      {u.maxScore}
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      sx={{ opacity: 0.85, fontWeight: 700, letterSpacing: 0.5 }}
+                    >
+                      smiles
+                    </Typography>
+                  </Box>
+                </Box>
+              );
+            })()}
+
+            <Stack spacing={0.75}>
+              {topThree.slice(1).map((u, idx) => {
+                const place = idx + 2;
+                const isMe = u.username === username;
+                const medal = place === 2 ? "🥈" : "🥉";
+                return (
+                  <Stack
+                    key={u.username}
+                    direction="row"
+                    alignItems="center"
+                    spacing={1.75}
+                    sx={{
+                      p: 1.25,
+                      pl: 1.5,
+                      borderRadius: 3,
+                      bgcolor: isMe ? "rgba(255, 95, 143, 0.08)" : "rgba(26, 21, 48, 0.025)",
+                      border: isMe
+                        ? "1px solid rgba(255, 95, 143, 0.22)"
+                        : "1px solid transparent",
+                      transition: "all 180ms ease",
+                      "&:hover": {
+                        bgcolor: isMe ? "rgba(255, 95, 143, 0.12)" : "rgba(26, 21, 48, 0.05)",
+                        transform: "translateX(2px)",
+                      },
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        fontSize: 22,
+                        minWidth: 32,
+                        textAlign: "center",
+                        filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.15))",
+                      }}
+                    >
+                      {medal}
+                    </Box>
+                    <Avatar
+                      sx={{
+                        width: 36,
+                        height: 36,
+                        background: avatarGradient(u.username),
+                        color: "#fff",
+                        fontWeight: 700,
+                        fontSize: 14,
+                      }}
+                    >
+                      {initialOf(u.username)}
+                    </Avatar>
+                    <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                      <Typography
+                        sx={{
+                          fontWeight: 700,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {u.username}
+                        {isMe && (
+                          <Box
+                            component="span"
+                            sx={{ ml: 1, color: "primary.main", fontWeight: 700, fontSize: 12 }}
+                          >
+                            (you)
+                          </Box>
+                        )}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        #{place}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ textAlign: "right" }}>
+                      <Typography sx={{ fontWeight: 800, fontSize: 18, lineHeight: 1.1 }}>
+                        {u.maxScore}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        smiles
+                      </Typography>
+                    </Box>
+                  </Stack>
+                );
+              })}
             </Stack>
           </Box>
         )}

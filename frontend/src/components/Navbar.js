@@ -22,10 +22,14 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import LeaderboardIcon from "@mui/icons-material/EmojiEvents";
 import DashboardIcon from "@mui/icons-material/SpaceDashboard";
 import SmileIcon from "@mui/icons-material/SentimentVerySatisfied";
+import VolumeUpIcon from "@mui/icons-material/VolumeUp";
+import VolumeOffIcon from "@mui/icons-material/VolumeOff";
+import Tooltip from "@mui/material/Tooltip";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
 import Logo from "./Logo";
 import { useAuth } from "../context/AuthContext";
+import { useSettings } from "../context/SettingsContext";
 
 const navItems = [
   { to: "/smile", label: "Play", icon: <SmileIcon fontSize="small" /> },
@@ -54,6 +58,7 @@ const NavButton = ({ to, children, icon }) => (
 
 const Navbar = () => {
   const { username, isAuthenticated, logout } = useAuth();
+  const { soundEnabled, toggleSound } = useSettings();
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
@@ -95,6 +100,16 @@ const Navbar = () => {
             ))}
           </Stack>
         )}
+
+        <Tooltip title={soundEnabled ? "Mute sounds" : "Unmute sounds"}>
+          <IconButton
+            onClick={toggleSound}
+            aria-label={soundEnabled ? "Mute sounds" : "Unmute sounds"}
+            sx={{ mr: 1, color: soundEnabled ? "text.primary" : "text.secondary" }}
+          >
+            {soundEnabled ? <VolumeUpIcon /> : <VolumeOffIcon />}
+          </IconButton>
+        </Tooltip>
 
         {isAuthenticated ? (
           <>
